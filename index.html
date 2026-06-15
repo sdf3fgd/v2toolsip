@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ابزار مدیریت کانفیگ V2Ray</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-deep: #06060f;
+            --surface: rgba(12, 12, 28, 0.75);
+            --surface-input: rgba(6, 6, 16, 0.85);
+            --accent: #00e87b;
+            --accent-2: #00c9a7;
+            --accent-glow: rgba(0, 232, 123, 0.15);
+            --accent-glow-strong: rgba(0, 232, 123, 0.35);
+            --text: #e4e4f0;
+            --text-muted: #5e5e7a;
+            --text-dim: #3a3a52;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-focus: rgba(0, 232, 123, 0.4);
+            --danger: #ff4757;
+            --purple: #7c3aed;
+            --cyan: #06b6d4;
+            --amber: #f59e0b;
+        }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.7;
+        }
+
+        .bg-orbs {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-orbs .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.12;
+        }
+
+        .bg-orbs .orb:nth-child(1) {
+            width: 500px; height: 500px;
+            background: var(--accent);
+            top: -150px; right: -100px;
+            animation: orbFloat 25s infinite ease-in-out;
+        }
+
+        .bg-orbs .orb:nth-child(2) {
+            width: 400px; height: 400px;
+            background: var(--purple);
+            bottom: -100px; left: -80px;
+            animation: orbFloat 30s infinite ease-in-out reverse;
+        }
+
+        .bg-orbs .orb:nth-child(3) {
+            width: 300px; height: 300px;
+            background: var(--cyan);
+            top: 40%; left: 40%;
+            animation: orbFloat 20s infinite ease-in-out;
+            animation-delay: -10s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(40px, -30px) scale(1.05); }
+            50% { transform: translate(-30px, 40px) scale(0.95); }
+            75% { transform: translate(20px, -20px) scale(1.02); }
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 880px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeDown 0.6s ease;
+        }
+
+        header h1 {
+            font-size: clamp(28px, 5vw, 42px);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 15px;
+            font-weight: 400;
+            letter-spacing: 0.15em;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 32px;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 6px;
+            animation: fadeUp 0.5s ease;
+            animation-delay: 0.1s;
+            animation-fill-mode: both;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 11px 14px;
+            background: transparent;
+            border: none;
+            border-radius: 13px;
+            color: var(--text-muted);
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.3s, background 0.3s, box-shadow 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover { color: var(--text); }
+
+        .tab-btn.active {
+            color: #000;
+            font-weight: 700;
+            background: var(--accent);
+            box-shadow: 0 4px 20px var(--accent-glow-strong);
+        }
+
+        .panel {
+            display: none;
+            animation: fadeUp 0.45s ease forwards;
+        }
+
+        .panel.active { display: block; }
+
+        .card {
+            background: var(--surface);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        .card:hover { border-color: rgba(255, 255, 255, 0.1); }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .icon-extract { background: rgba(0,232,123,0.12); color: var(--accent); }
+        .icon-clean   { background: rgba(6,182,212,0.12);  color: var(--cyan); }
+        .icon-build   { background: rgba(124,58,237,0.12); color: var(--purple); }
+        .icon-ipgen   { background: rgba(245,158,11,0.12); color: var(--amber); }
+
+        label.field-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 160px;
+            background: var(--surface-input);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+            direction: ltr;
+            text-align: left;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        textarea::placeholder {
+            color: var(--text-dim);
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 13px;
+            direction: rtl;
+            text-align: right;
+        }
+
+        textarea.output-area {
+            background: rgba(0,232,123,0.02);
+            border-color: rgba(0,232,123,0.1);
+            min-height: 120px;
+        }
+
+        .output-wrapper {
+            position: relative;
+            margin-top: 16px;
+        }
+
+        .output-actions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 6px;
+            z-index: 5;
+        }
+
+        .action-btn {
+            padding: 7px 14px;
+            border-radius: 9px;
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            border: 1px solid transparent;
+        }
+
+        .copy-btn {
+            background: rgba(0,232,123,0.12);
+            border-color: rgba(0,232,123,0.2);
+            color: var(--accent);
+        }
+
+        .copy-btn:hover {
+            background: rgba(0,232,123,0.2);
+            box-shadow: 0 2px 12px var(--accent-glow);
+        }
+
+        .copy-btn.copied {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        .download-btn {
+            background: rgba(6,182,212,0.12);
+            border-color: rgba(6,182,212,0.2);
+            color: var(--cyan);
+        }
+
+        .download-btn:hover {
+            background: rgba(6,182,212,0.2);
+            box-shadow: 0 2px 12px rgba(6,182,212,0.15);
+        }
+
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .radio-option { position: relative; }
+
+        .radio-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .radio-option label {
+            display: block;
+            padding: 10px 18px;
+            background: var(--surface-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all 0.25s;
+            user-select: none;
+        }
+
+        .radio-option label:hover {
+            border-color: rgba(255,255,255,0.12);
+            color: var(--text);
+        }
+
+        .radio-option input:checked + label {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+            color: var(--accent);
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 13px 32px;
+            border: none;
+            border-radius: 14px;
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #000;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--accent-glow-strong);
+        }
+
+        .btn-clean {
+            background: linear-gradient(135deg, var(--cyan), #0891b2);
+            color: #000;
+            box-shadow: 0 4px 20px rgba(6,182,212,0.2);
+        }
+        .btn-clean:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(6,182,212,0.3);
+        }
+
+        .btn-build {
+            background: linear-gradient(135deg, var(--purple), #9333ea);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(124,58,237,0.25);
+        }
+        .btn-build:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(124,58,237,0.35);
+        }
+
+        .btn-ipgen {
+            background: linear-gradient(135deg, var(--amber), #d97706);
+            color: #000;
+            box-shadow: 0 4px 20px rgba(245,158,11,0.2);
+        }
+        .btn-ipgen:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(245,158,11,0.3);
+        }
+
+        .btn:active { transform: translateY(0); }
+
+        .btn-row {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .stats {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .stat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--surface-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .stat-badge .num {
+            color: var(--accent);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+
+        .template-input { min-height: 80px !important; }
+        .mt-12 { margin-top: 12px; }
+
+        /* Count row for IP gen */
+        .count-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 20px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+
+        .count-field {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .count-input {
+            width: 100%;
+            padding: 11px 14px;
+            background: var(--surface-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .count-input:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .count-input:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .count-input::placeholder {
+            color: var(--text-dim);
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 13px;
+        }
+
+        .check-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding-bottom: 11px;
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        .custom-check {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            min-width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface-input);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.25s;
+        }
+
+        .custom-check:checked {
+            background: var(--amber);
+            border-color: var(--amber);
+        }
+
+        .custom-check:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #000;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--accent);
+            color: #000;
+            padding: 12px 28px;
+            border-radius: 14px;
+            font-family: 'Vazirmatn', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            z-index: 9999;
+            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s;
+            box-shadow: 0 8px 30px var(--accent-glow-strong);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+        @media (max-width: 600px) {
+            .app { padding: 24px 12px 40px; }
+            .card { padding: 18px; border-radius: 16px; }
+            .tabs { border-radius: 14px; padding: 5px; gap: 3px; }
+            .tab-btn { padding: 9px 8px; font-size: 12px; }
+            .radio-group { gap: 8px; }
+            .radio-option label { padding: 8px 14px; font-size: 12px; }
+            .btn { padding: 12px 24px; font-size: 14px; }
+            textarea { font-size: 11.5px; padding: 12px; }
+            .count-row { gap: 12px; }
+            .output-actions { gap: 4px; }
+            .action-btn { padding: 6px 10px; font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-orbs">
+    <div class="orb"></div>
+    <div class="orb"></div>
+    <div class="orb"></div>
+</div>
+
+<div class="app">
+    <header>
+        <h1>V2Ray Config Tool</h1>
+        <p>استخراج &bull; پاکسازی &bull; ساخت &bull; ساخت آی‌پی</p>
+    </header>
+
+    <nav class="tabs" id="tabBar">
+        <button class="tab-btn active" data-tab="extract">استخراج</button>
+        <button class="tab-btn" data-tab="clean">پاکسازی</button>
+        <button class="tab-btn" data-tab="build">ساخت</button>
+        <button class="tab-btn" data-tab="ipgen">ساخت آی‌پی</button>
+    </nav>
+
+    <main>
+        <!-- ===== EXTRACT ===== -->
+        <section id="extract" class="panel active">
+            <div class="card">
+                <div class="card-title">
+                    <span class="icon icon-extract">&#x2B07;</span>
+                    استخراج از کانفیگ
+                </div>
+                <label class="field-label">کانفیگ‌ها را وارد کنید (هر خط یک کانفیگ)</label>
+                <textarea id="extractInput" placeholder="vless://...&#10;vmess://...&#10;trojan://..."></textarea>
+
+                <label class="field-label mt-12">نوع استخراج</label>
+                <div class="radio-group" id="extractMode">
+                    <div class="radio-option">
+                        <input type="radio" name="extMode" id="extIp" value="ip" checked>
+                        <label for="extIp">فقط آی‌پی</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" name="extMode" id="extIpPort" value="ip:port">
+                        <label for="extIpPort">آی‌پی:پورت</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" name="extMode" id="extIpPortName" value="ip:port#name">
+                        <label for="extIpPortName">آی‌پی:پورت#نام</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" name="extMode" id="extRandom" value="ip:port#random">
+                        <label for="extRandom">آی‌پی:پورت#نام رندوم</label>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="runExtract()">استخراج</button>
+                </div>
+
+                <div class="output-wrapper" id="extractOutputWrap" style="display:none;">
+                    <textarea id="extractOutput" class="output-area" readonly></textarea>
+                    <div class="output-actions">
+                        <button class="action-btn copy-btn" onclick="copyText('extractOutput', this)">کپی</button>
+                        <button class="action-btn download-btn" onclick="downloadFile('extractOutput','extracted.txt')">دانلود</button>
+                    </div>
+                </div>
+                <div class="stats" id="extractStats"></div>
+            </div>
+        </section>
+
+        <!-- ===== CLEAN ===== -->
+        <section id="clean" class="panel">
+            <div class="card">
+                <div class="card-title">
+                    <span class="icon icon-clean">&#x2728;</span>
+                    پاکسازی کانفیگ‌ها
+                </div>
+                <label class="field-label">کانفیگ‌ها را وارد کنید (تکراری‌های آی‌پی:پورت حذف می‌شوند)</label>
+                <textarea id="cleanInput" placeholder="کانفیگ‌های خود را اینجا وارد کنید...&#10;هر خط یک کانفیگ"></textarea>
+
+                <div class="btn-row">
+                    <button class="btn btn-clean" onclick="runClean()">پاکسازی</button>
+                </div>
+
+                <div class="output-wrapper" id="cleanOutputWrap" style="display:none;">
+                    <textarea id="cleanOutput" class="output-area" readonly></textarea>
+                    <div class="output-actions">
+                        <button class="action-btn copy-btn" onclick="copyText('cleanOutput', this)">کپی</button>
+                        <button class="action-btn download-btn" onclick="downloadFile('cleanOutput','cleaned.txt')">دانلود</button>
+                    </div>
+                </div>
+                <div class="stats" id="cleanStats"></div>
+            </div>
+        </section>
+
+        <!-- ===== BUILD ===== -->
+        <section id="build" class="panel">
+            <div class="card">
+                <div class="card-title">
+                    <span class="icon icon-build">&#x1F527;</span>
+                    ساخت کانفیگ جدید
+                </div>
+                <label class="field-label">کانفیگ قالب را وارد کنید</label>
+                <textarea id="buildTemplate" class="template-input" placeholder="یک کانفیگ vless:// یا vmess:// وارد کنید"></textarea>
+
+                <div class="section-divider"></div>
+
+                <label class="field-label">نوع ورودی جایگزینی</label>
+                <div class="radio-group" id="buildMode">
+                    <div class="radio-option">
+                        <input type="radio" name="bldMode" id="bldIp" value="ip" checked>
+                        <label for="bldIp">فقط آی‌پی</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" name="bldMode" id="bldIpPort" value="ip:port">
+                        <label for="bldIpPort">آی‌پی:پورت</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" name="bldMode" id="bldIpPortName" value="ip:port#name">
+                        <label for="bldIpPortName">آی‌پی:پورت#نام</label>
+                    </div>
+                </div>
+
+                <label class="field-label">مقادیر جایگزینی (هر خط یک مقدار)</label>
+                <textarea id="buildValues" placeholder="1.2.3.4&#10;5.6.7.8&#10;9.10.11.12"></textarea>
+
+                <div class="btn-row">
+                    <button class="btn btn-build" onclick="runBuild()">ساخت کانفیگ</button>
+                </div>
+
+                <div class="output-wrapper" id="buildOutputWrap" style="display:none;">
+                    <textarea id="buildOutput" class="output-area" readonly></textarea>
+                    <div class="output-actions">
+                        <button class="action-btn copy-btn" onclick="copyText('buildOutput', this)">کپی</button>
+                        <button class="action-btn download-btn" onclick="downloadFile('buildOutput','built.txt')">دانلود</button>
+                    </div>
+                </div>
+                <div class="stats" id="buildStats"></div>
+            </div>
+        </section>
+
+        <!-- ===== IP GENERATOR ===== -->
+        <section id="ipgen" class="panel">
+            <div class="card">
+                <div class="card-title">
+                    <span class="icon icon-ipgen">&#x2316;</span>
+                    ساخت آی‌پی از رنج
+                </div>
+
+                <label class="field-label">رنج‌های آی‌پی را وارد کنید (هر خط یک رنج)</label>
+                <textarea id="ipGenRanges" placeholder="104.16.0.0/12&#10;172.64.0.0/13&#10;192.168.1.*&#10;192.168.2.1-192.168.2.100"></textarea>
+
+                <label class="field-label mt-12">ترتیب ساخت</label>
+                <div class="radio-group" id="ipOrder">
+                    <div class="radio-option">
+                        <input type="radio" name="ipOrderR" id="ipSequential" value="sequential" checked>
+                        <label for="ipSequential">به ترتیب</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" name="ipOrderR" id="ipRandom" value="random">
+                        <label for="ipRandom">رندوم</label>
+                    </div>
+                </div>
+
+                <label class="field-label">تعداد آی‌پی</label>
+                <div class="count-row">
+                    <div class="count-field">
+                        <input type="number" id="ipCount" class="count-input" min="1" placeholder="مثلاً 1000">
+                    </div>
+                    <label class="check-label">
+                        <input type="checkbox" class="custom-check" id="ipAllCheck">
+                        <span>ساخت همه حالات</span>
+                    </label>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-ipgen" onclick="runIPGen()">ساخت آی‌پی</button>
+                </div>
+
+                <div class="output-wrapper" id="ipGenOutputWrap" style="display:none;">
+                    <textarea id="ipGenOutput" class="output-area" readonly></textarea>
+                    <div class="output-actions">
+                        <button class="action-btn copy-btn" onclick="copyText('ipGenOutput', this)">کپی</button>
+                        <button class="action-btn download-btn" onclick="downloadFile('ipGenOutput','generated_ips.txt')">دانلود</button>
+                    </div>
+                </div>
+                <div class="stats" id="ipGenStats"></div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== TABS ===== */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const panel = document.getElementById(btn.dataset.tab);
+        panel.classList.remove('active');
+        void panel.offsetWidth;
+        panel.classList.add('active');
+    });
+});
+
+/* ===== TOGGLE: ALL CHECK ===== */
+document.getElementById('ipAllCheck').addEventListener('change', function() {
+    document.getElementById('ipCount').disabled = this.checked;
+});
+
+/* ===== TOAST ===== */
+let toastTimer;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ===== COPY ===== */
+function copyText(textareaId, btn) {
+    const el = document.getElementById(textareaId);
+    if (!el.value) return;
+    navigator.clipboard.writeText(el.value).then(() => {
+        btn.textContent = 'کپی شد!';
+        btn.classList.add('copied');
+        showToast('در کلیپبورد کپی شد');
+        setTimeout(() => { btn.textContent = 'کپی'; btn.classList.remove('copied'); }, 1500);
+    }).catch(() => {
+        el.select();
+        document.execCommand('copy');
+        btn.textContent = 'کپی شد!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'کپی'; btn.classList.remove('copied'); }, 1500);
+    });
+}
+
+/* ===== DOWNLOAD ===== */
+function downloadFile(textareaId, filename) {
+    const text = document.getElementById(textareaId).value;
+    if (!text.trim()) { showToast('خروجی خالی است'); return; }
+    const blob = new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('فایل دانلود شد');
+}
+
+/* ===== HELPERS ===== */
+function getRadio(name) {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : null;
+}
+
+function randomName(len) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let s = '';
+    for (let i = 0; i < (len||8); i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+}
+
+/* ===== CONFIG PARSER ===== */
+function parseConfig(line) {
+    line = line.trim();
+    if (!line) return null;
+
+    if (line.toLowerCase().startsWith('vmess://')) {
+        try {
+            const raw = line.substring(8);
+            let json;
+            try { json = JSON.parse(atob(raw)); } catch(e) { json = JSON.parse(decodeURIComponent(atob(raw))); }
+            return { protocol:'vmess', host: json.add||json.host||'', port: String(json.port||''), name: json.ps||'', data: json, original: line };
+        } catch(e) { return null; }
+    }
+
+    const protoMatch = line.match(/^(vless|trojan|ss|hysteria2|tuic):\/\//i);
+    if (!protoMatch) return null;
+    const protocol = protoMatch[1].toLowerCase();
+    const rest = line.substring(protocol.length + 3);
+    const atIndex = rest.indexOf('@');
+    if (atIndex === -1) return null;
+    const userInfo = rest.substring(0, atIndex);
+    const afterAt = rest.substring(atIndex + 1);
+    const hashIdx = afterAt.indexOf('#');
+    const mainPart = hashIdx !== -1 ? afterAt.substring(0, hashIdx) : afterAt;
+    const rawName = hashIdx !== -1 ? afterAt.substring(hashIdx + 1) : '';
+    const name = rawName ? decodeURIComponent(rawName) : '';
+    const qIdx = mainPart.indexOf('?');
+    const hostPort = qIdx !== -1 ? mainPart.substring(0, qIdx) : mainPart;
+    const params = qIdx !== -1 ? mainPart.substring(qIdx) : '';
+    let host, port;
+    if (hostPort.startsWith('[')) {
+        const cb = hostPort.indexOf(']');
+        host = hostPort.substring(1, cb);
+        port = hostPort.substring(cb + 2);
+    } else {
+        const lc = hostPort.lastIndexOf(':');
+        if (lc === -1) { host = hostPort; port = '443'; }
+        else { host = hostPort.substring(0, lc); port = hostPort.substring(lc + 1); }
+    }
+    return { protocol, userInfo, host, port, params, name, original: line };
+}
+
+/* ===== REBUILDER ===== */
+function rebuildUrl(parsed, newHost, newPort, newName) {
+    const host = newHost || parsed.host;
+    const port = newPort || parsed.port;
+    const name = (newName !== undefined && newName !== null) ? newName : parsed.name;
+    const hp = host.includes(':') ? `[${host}]:${port}` : `${host}:${port}`;
+    let url = `${parsed.protocol}://${parsed.userInfo}@${hp}${parsed.params}`;
+    if (name) url += '#' + encodeURIComponent(name);
+    return url;
+}
+
+function rebuildVmess(parsed, newHost, newPort, newName) {
+    const d = Object.assign({}, parsed.data);
+    if (newHost) d.add = newHost;
+    if (newPort) d.port = Number(newPort);
+    if (newName !== undefined && newName !== null) d.ps = newName;
+    try { return 'vmess://' + btoa(JSON.stringify(d)); }
+    catch(e) { return 'vmess://' + btoa(unescape(encodeURIComponent(JSON.stringify(d)))); }
+}
+
+function rebuild(parsed, newHost, newPort, newName) {
+    if (parsed.protocol === 'vmess') return rebuildVmess(parsed, newHost, newPort, newName);
+    return rebuildUrl(parsed, newHost, newPort, newName);
+}
+
+/* =====================================================
+   EXTRACT
+   ===================================================== */
+function runExtract() {
+    const raw = document.getElementById('extractInput').value;
+    if (!raw.trim()) { showToast('لطفاً کانفیگ وارد کنید'); return; }
+    const lines = raw.split('\n');
+    const mode = getRadio('extMode');
+    const results = [];
+    let parsed = 0, failed = 0;
+
+    lines.forEach(line => {
+        const cfg = parseConfig(line);
+        if (!cfg) { if (line.trim()) failed++; return; }
+        parsed++;
+        switch(mode) {
+            case 'ip':             results.push(cfg.host); break;
+            case 'ip:port':        results.push(cfg.host+':'+cfg.port); break;
+            case 'ip:port#name':   results.push(cfg.host+':'+cfg.port+'#'+(cfg.name||'noname')); break;
+            case 'ip:port#random': results.push(cfg.host+':'+cfg.port+'#'+randomName(8)); break;
+        }
+    });
+
+    document.getElementById('extractOutput').value = results.join('\n');
+    document.getElementById('extractOutputWrap').style.display = results.length ? 'block' : 'none';
+    document.getElementById('extractStats').innerHTML =
+        `<span class="stat-badge">یافت شده: <span class="num">${parsed}</span></span>` +
+        (failed ? `<span class="stat-badge">نامعتبر: <span class="num" style="color:var(--danger)">${failed}</span></span>` : '') +
+        `<span class="stat-badge">خروجی: <span class="num">${results.length}</span></span>`;
+}
+
+/* =====================================================
+   CLEAN
+   ===================================================== */
+function runClean() {
+    const raw = document.getElementById('cleanInput').value;
+    if (!raw.trim()) { showToast('لطفاً کانفیگ وارد کنید'); return; }
+    const lines = raw.split('\n');
+    const seen = new Set();
+    const kept = [];
+    let dupes = 0;
+
+    lines.forEach(line => {
+        const cfg = parseConfig(line);
+        if (!cfg) { if (line.trim()) kept.push(line.trim()); return; }
+        const key = cfg.host + ':' + cfg.port;
+        if (seen.has(key)) { dupes++; return; }
+        seen.add(key);
+        kept.push(line.trim());
+    });
+
+    document.getElementById('cleanOutput').value = kept.join('\n');
+    document.getElementById('cleanOutputWrap').style.display = kept.length ? 'block' : 'none';
+    document.getElementById('cleanStats').innerHTML =
+        `<span class="stat-badge">ورودی: <span class="num">${lines.filter(l=>l.trim()).length}</span></span>` +
+        `<span class="stat-badge">حذف شده: <span class="num" style="color:var(--danger)">${dupes}</span></span>` +
+        `<span class="stat-badge">باقی‌مانده: <span class="num">${kept.length}</span></span>`;
+}
+
+/* =====================================================
+   BUILD
+   ===================================================== */
+function runBuild() {
+    const tmplRaw = document.getElementById('buildTemplate').value.trim();
+    const valsRaw = document.getElementById('buildValues').value;
+    if (!tmplRaw) { showToast('لطفاً کانفیگ قالب وارد کنید'); return; }
+    if (!valsRaw.trim()) { showToast('لطفاً مقادیر جایگزینی وارد کنید'); return; }
+    const tmpl = parseConfig(tmplRaw);
+    if (!tmpl) { showToast('فرمت کانفیگ قالب نامعتبر است'); return; }
+
+    const mode = getRadio('bldMode');
+    const valLines = valsRaw.split('\n').filter(l => l.trim());
+    const results = [];
+
+    valLines.forEach(v => {
+        v = v.trim();
+        if (!v) return;
+        let newHost = null, newPort = null, newName = undefined;
+        switch(mode) {
+            case 'ip':
+                newHost = v; break;
+            case 'ip:port': {
+                const idx = v.lastIndexOf(':');
+                if (idx !== -1) { newHost = v.substring(0,idx); newPort = v.substring(idx+1); }
+                else newHost = v;
+                break;
+            }
+            case 'ip:port#name': {
+                const hIdx = v.indexOf('#');
+                const main = hIdx !== -1 ? v.substring(0,hIdx) : v;
+                newName = hIdx !== -1 ? v.substring(hIdx+1) : '';
+                const cIdx = main.lastIndexOf(':');
+                if (cIdx !== -1) { newHost = main.substring(0,cIdx); newPort = main.substring(cIdx+1); }
+                else newHost = main;
+                break;
+            }
+        }
+        results.push(rebuild(tmpl, newHost, newPort, newName));
+    });
+
+    document.getElementById('buildOutput').value = results.join('\n');
+    document.getElementById('buildOutputWrap').style.display = results.length ? 'block' : 'none';
+    document.getElementById('buildStats').innerHTML =
+        `<span class="stat-badge">ساخته شده: <span class="num">${results.length}</span></span>`;
+}
+
+/* =====================================================
+   IP GENERATOR
+   ===================================================== */
+const MAX_IPS = 500000;
+
+function ipToInt(ip) {
+    const parts = ip.trim().split('.').map(Number);
+    if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return null;
+    return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+}
+
+function intToIp(n) {
+    return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');
+}
+
+function parseIPRange(input) {
+    input = input.trim();
+    if (!input) return null;
+
+    /* CIDR */
+    if (input.includes('/')) {
+        const [ipStr, prefixStr] = input.split('/');
+        const ipInt = ipToInt(ipStr);
+        const prefix = parseInt(prefixStr);
+        if (ipInt === null || isNaN(prefix) || prefix < 0 || prefix > 32) return null;
+        let mask;
+        if (prefix === 0) mask = 0;
+        else mask = (0xFFFFFFFF << (32 - prefix)) >>> 0;
+        const network = (ipInt & mask) >>> 0;
+        const broadcast = (network | (~mask >>> 0)) >>> 0;
+        return { start: network, end: broadcast };
+    }
+
+    /* Wildcard */
+    if (input.includes('*')) {
+        const parts = input.split('.');
+        if (parts.length !== 4) return null;
+        let startParts = [], endParts = [], valid = true;
+        parts.forEach(p => {
+            if (p === '*') { startParts.push(0); endParts.push(255); }
+            else {
+                const n = parseInt(p);
+                if (isNaN(n) || n < 0 || n > 255) { valid = false; return; }
+                startParts.push(n); endParts.push(n);
+            }
+        });
+        if (!valid) return null;
+        const start = ((startParts[0]<<24)|(startParts[1]<<16)|(startParts[2]<<8)|startParts[3]) >>> 0;
+        const end   = ((endParts[0]<<24)|(endParts[1]<<16)|(endParts[2]<<8)|endParts[3]) >>> 0;
+        return { start, end };
+    }
+
+    /* Dash range */
+    if (input.includes('-')) {
+        const parts = input.split('-').map(s => s.trim());
+        if (parts.length !== 2) return null;
+        const s = ipToInt(parts[0]), e = ipToInt(parts[1]);
+        if (s === null || e === null || e < s) return null;
+        return { start: s, end: e };
+    }
+
+    /* Single IP */
+    const single = ipToInt(input);
+    if (single !== null) return { start: single, end: single };
+    return null;
+}
+
+function generateIPs(ranges, count, isRandom) {
+    let total = 0;
+    ranges.forEach(r => { total += (r.end - r.start + 1); });
+    const actual = Math.min(count, total);
+    let result = [];
+
+    if (isRandom) {
+        if (total <= 1000000 && actual > total * 0.3) {
+            /* generate all → partial Fisher-Yates shuffle */
+            for (const range of ranges) {
+                for (let i = range.start; i <= range.end; i++) result.push(intToIp(i));
+            }
+            for (let i = 0; i < actual; i++) {
+                const j = i + Math.floor(Math.random() * (result.length - i));
+                [result[i], result[j]] = [result[j], result[i]];
+            }
+            result.length = actual;
+        } else {
+            /* weighted random picks with dedup */
+            const rangeSizes = ranges.map(r => r.end - r.start + 1);
+            const used = new Set();
+            let attempts = 0, maxAtt = actual * 20;
+            while (result.length < actual && attempts < maxAtt) {
+                attempts++;
+                let pick = Math.floor(Math.random() * total);
+                let rangeIdx = 0;
+                for (let ri = 0; ri < ranges.length; ri++) {
+                    if (pick < rangeSizes[ri]) { rangeIdx = ri; break; }
+                    pick -= rangeSizes[ri];
+                }
+                const range = ranges[rangeIdx];
+                const ip = range.start + Math.floor(Math.random() * (range.end - range.start + 1));
+                if (!used.has(ip)) { used.add(ip); result.push(intToIp(ip)); }
+            }
+        }
+    } else {
+        /* sequential */
+        let taken = 0;
+        for (const range of ranges) {
+            for (let i = range.start; i <= range.end && taken < actual; i++) {
+                result.push(intToIp(i));
+                taken++;
+            }
+        }
+    }
+    return result;
+}
+
+function runIPGen() {
+    const raw = document.getElementById('ipGenRanges').value;
+    if (!raw.trim()) { showToast('لطفاً رنج آی‌پی وارد کنید'); return; }
+
+    const isAll  = document.getElementById('ipAllCheck').checked;
+    const countVal = parseInt(document.getElementById('ipCount').value);
+    const order  = getRadio('ipOrderR');
+    if (!isAll && (!countVal || countVal <= 0)) { showToast('تعداد را وارد کنید یا «همه حالات» را فعال کنید'); return; }
+
+    const lines = raw.split('\n').filter(l => l.trim());
+    const ranges = [];
+    let failed = 0;
+    lines.forEach(line => {
+        const r = parseIPRange(line);
+        if (r && r.end >= r.start) ranges.push(r);
+        else failed++;
+    });
+    if (!ranges.length) { showToast('هیچ رنج معتبری یافت نشد'); return; }
+
+    let total = 0;
+    ranges.forEach(r => { total += (r.end - r.start + 1); });
+
+    if (isAll && total > MAX_IPS) {
+        showToast('تعداد کل ('+total.toLocaleString()+') بیش از حد مجاز است — از حالت تعداد مشخص استفاده کنید');
+        return;
+    }
+
+    const target = isAll ? total : Math.min(countVal, MAX_IPS);
+    const ips = generateIPs(ranges, target, order === 'random');
+
+    document.getElementById('ipGenOutput').value = ips.join('\n');
+    document.getElementById('ipGenOutputWrap').style.display = ips.length ? 'block' : 'none';
+    document.getElementById('ipGenStats').innerHTML =
+        `<span class="stat-badge">رنج‌ها: <span class="num">${ranges.length}</span></span>` +
+        `<span class="stat-badge">کل حالات: <span class="num">${total.toLocaleString()}</span></span>` +
+        `<span class="stat-badge">ساخته شده: <span class="num">${ips.length.toLocaleString()}</span></span>` +
+        (failed ? `<span class="stat-badge">نامعتبر: <span class="num" style="color:var(--danger)">${failed}</span></span>` : '');
+}
+</script>
+</body>
+</html>
